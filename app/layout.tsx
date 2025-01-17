@@ -1,5 +1,9 @@
+'use client';
+
 import { ReactNode } from 'react';
-import { UserProvider } from '@auth0/nextjs-auth0/client';
+import { Provider } from "react-redux";
+import { store } from './store';
+import Navbar from './components/Navbar';
 
 type RootLayoutProps = {
     children: ReactNode;
@@ -8,9 +12,12 @@ type RootLayoutProps = {
 export default function RootLayout({ children }: RootLayoutProps) {
     return (
         <html lang="en">
-            <UserProvider>
-                <body>{children}</body>
-            </UserProvider>
+            <Provider store={store}>
+                <body>
+                    <Navbar />
+                    {children}
+                </body>
+            </Provider>
         </html>
     );
 }
