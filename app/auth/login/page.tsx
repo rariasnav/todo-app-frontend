@@ -1,12 +1,15 @@
 'use client';
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useDispatch } from "react-redux";
-import axiosInstance from "../../utils/axiosInstance";
-import { login } from "../../features/authSlice";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser, clearError } from "../../features/authSlice";
+import { RootState, AppDispatch } from "../../store";
 import { useRouter } from "next/navigation";
+import { loginSchema } from "../../utils/validation";
 import styled from "styled-components";
+import ErrorMessage from "../../components/ErrorMessage";
 
 
 const FormContainer = styled.div`
@@ -75,45 +78,54 @@ const Button = styled.button`
     }
 `;
 
-const LoginPage: React.FC = () => {
-    const { register, handleSubmit, reset } = useForm();
-    const dispatch = useDispatch();
-    const router = useRouter();
+const ErrorText = styled.p`
+    color: red;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+`;
 
-    const onSubmit = async (data: any) => {
-        try {
-            const response = await axiosInstance.post("/api/auth/login", data);
-            dispatch(login(response.data.token));
-            alert("Login successful!");
-            reset();
+
+const LoginPage: React.FC = () => {
+    const dispatch = useDispatch<AppDispatch>();
+    const router = useRouter();
+    const { loading, error } = useSelector((state: RootState) => state.auth);
+
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm({ resolver: yupResolver(loginSchema) });
+
+    const onSubmit = async (data: { email: string; password: string }) => {
+        const resultAction = await dispatch(loginUser(data));
+
+        if (loginUser.fulfilled.match(resultAction)) {
             router.push("/");
-        } catch (error: any) {
-            console.error("Login failed", error.response?.data?.message || error.message);
-            alert("Login failed. Please check your credentials and try again.");
         }
     };
 
-    return(
+    useEffect(() => {
+        dispatch(clearError());
+    }, [dispatch]);
+
+    return (
         <FormContainer>
-            <Form onSubmit={handleSubmit(onSubmit)} style={{ maxWidth: "400px", margin: "0 auto" }}>
+            <Form onSubmit={handleSubmit(onSubmit)}>
                 <Title>Login</Title>
+                
+                {error && <ErrorMessage message={error} />}
+
                 <Label htmlFor="email">Email</Label>
-                <Input
-                    id="email"
-                    {...register("email", { required: "Email is required" })}
-                    placeholder="Email"
-                    type="email"
-                />
+                <Input id="email" {...register("email")} placeholder="Enter your email" type="email" />
+                {errors.email && <ErrorText>{errors.email.message}</ErrorText>}
 
                 <Label htmlFor="password">Password</Label>
-                <Input
-                    id="password"
-                    {...register("password", { required: "Password is required" })}
-                    placeholder="Password"
-                    type="password"
-                />
-                
-                <Button type="submit">Login</Button>
+                <Input id="password" {...register("password")} placeholder="Enter your password" type="password" />
+                {errors.password && <ErrorText>{errors.password.message}</ErrorText>}
+
+                <Button type="submit" disabled={loading}>
+                    {loading ? "Logging in..." : "Login"}
+                </Button>
             </Form>
         </FormContainer>
     );

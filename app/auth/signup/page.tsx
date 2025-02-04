@@ -1,8 +1,14 @@
 'use client';
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import axiosInstance from "../../utils/axiosInstance";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { useDispatch, useSelector } from "react-redux";
+import { registerUser, clearError } from "../../features/authSlice";
+import { RootState, AppDispatch } from "../../store";
+import { useRouter } from "next/navigation";
+import { signupSchema } from "../../utils/validation";
+import ErrorMessage from "../../components/ErrorMessage";
 import styled from "styled-components";
 
 
@@ -70,53 +76,58 @@ const Button = styled.button`
     &:focus {
         outline: none;
     }
+
+    &:disabled {
+        background-color: #95a5a6;
+        cursor: not-allowed;
+    }
 `;
 
 const SignUpPage: React.FC = () => {
-    const { register, handleSubmit, reset } = useForm();
+    const dispatch = useDispatch<AppDispatch>();
+    const router = useRouter();
+    const { loading, error } = useSelector((state: RootState) => state.auth);
 
-    const onSubmit = async (data: any) => {
-        try {
-            await axiosInstance.post("/api/auth/register", data);
+    const {
+        register,
+        handleSubmit,
+        reset,
+        formState: { errors },
+    } = useForm({ resolver: yupResolver(signupSchema) });
+
+    const onSubmit = async (data: { name: string; email: string; password: string }) => {
+        const resultAction = await dispatch(registerUser(data));
+
+        if (registerUser.fulfilled.match(resultAction)) {
             alert("User registered successfully. You can now log in.");
             reset();
-        } catch (error: any) {
-            console.error("Sign-up failed:", error.response?.data?.message || error.message);
-            alert("Sign-up failed. Please try again.");
+            router.push("/auth/login");
         }
     };
 
+    useEffect(() => {
+        dispatch(clearError());
+    }, [dispatch]);
+
     return(
         <FormContainer>
-            <Form 
-                onSubmit={handleSubmit(onSubmit)} 
-                style={{ maxWidth: "400px", margin: "0 auto" }}
-            >
+            <Form onSubmit={handleSubmit(onSubmit)}>
                 <Title>Sign Up</Title>
+                {error && <ErrorMessage message={error} />}
+                
                 <Label htmlFor="name">Name</Label>
-                <Input 
-                    id="name"
-                    {...register("name", { required: "Name is required" })}
-                    placeholder="Your name"
-                    type="text" 
-                />
+                <Input id="name" {...register("name")} placeholder="Your name" type="text" />
+                <p style={{ color: "red" }}>{errors.name?.message}</p>
 
                 <Label htmlFor="email">Email</Label>
-                <Input 
-                    id="email"
-                    {...register("email", { required: "Email is required" })}
-                    placeholder="Your email"
-                    type="email" 
-                />
+                <Input id="email" {...register("email")} placeholder="Your email" type="email" />
+                <p style={{ color: "red" }}>{errors.email?.message}</p>
 
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                    id="password"
-                    {...register("password", { required: "Password is required", minLength: 6 })}
-                    placeholder="Your password"
-                    type="password" 
-                />
-                <Button type="submit">Sign Up</Button>
+                <Input id="password" {...register("password")} placeholder="Your password" type="password" />
+                <p style={{ color: "red" }}>{errors.password?.message}</p>
+
+                <Button type="submit" disabled={loading}>{loading ? "Signing up..." : "Sign Up"}</Button>
             </Form>
         </FormContainer>
     );

@@ -2,7 +2,8 @@
 
 import React, { ReactNode } from 'react';
 import { Provider } from "react-redux";
-import { store } from './store';
+import { PersistGate } from "redux-persist/integration/react";
+import { store, persistor } from './store';
 import Navbar from './components/Navbar';
 
 type RootLayoutProps = {
@@ -13,10 +14,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
     return (
         <html lang="en">
             <Provider store={store}>
-                <body>
-                    <Navbar />
-                    {children}
-                </body>
+                <PersistGate loading={null} persistor={persistor}>
+                    <body>
+                        <Navbar />
+                        {children}
+                    </body>
+                </PersistGate>
             </Provider>
         </html>
     );
