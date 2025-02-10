@@ -1,8 +1,14 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axiosInstance from "../utils/axiosInstance";
+import { createSlice } from "@reduxjs/toolkit";
+import { 
+    fetchTasks,
+    addTask,
+    editTask,
+    deleteTask,
+    toggleTaskCompleted 
+} from "./taskActions";
 
 interface Task {
-    id: string;
+    _id: string;
     title: string;
     description: string;
     completed: boolean;
@@ -19,18 +25,6 @@ const initialState: TaskState = {
     loading: false,
     error: null,
 };
-
-export const fetchTasks = createAsyncThunk("tasks/fetchTasks", async (_, { getState, rejectWithValue }) => {
-    try {
-        const state: any = getState();
-        const response = await axiosInstance.get("/api/todos", {
-            headers: { Authorization: `Bearer ${state.auth.token}` },
-        });
-        return response.data;
-    } catch (error: any) {
-        return rejectWithValue(error.response?.data?.message || "Failed to fetch tasks");
-    }
-});
 
 const taskSlice = createSlice({
     name: "tasks",
@@ -49,6 +43,33 @@ const taskSlice = createSlice({
             .addCase(fetchTasks.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
+            })
+            .addCase(addTask.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(addTask.fulfilled, (state, action) => {
+                state.tasks.push(action.payload);
+                state.loading = false;
+            })
+            .addCase(addTask.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            })
+            .addCase(editTask.fulfilled, (state, action) => {
+                const index = state.tasks.findIndex(task => task._id === action.payload._id);
+                if (index !== -1) {
+                    state.tasks[index] = action.payload;
+                }
+            })
+            .addCase(deleteTask.fulfilled, (state, action) => {
+                state.tasks = state.tasks.filter(task => task._id !== action.payload);
+            })
+            .addCase(toggleTaskCompleted.fulfilled, (state, action) => {
+                const updatedTask = action.payload;
+                const index = state.tasks.findIndex(task => task._id === updatedTask._id);
+                if (index !== -1) {
+                    state.tasks[index] = { ...state.tasks[index], completed: updatedTask.completed };
+                }
             })
     },
 });

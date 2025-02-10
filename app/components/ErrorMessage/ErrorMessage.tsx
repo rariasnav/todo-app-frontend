@@ -1,11 +1,12 @@
 import React from "react";
+import { Container } from "./style";
 
 interface ErrorMessageProps {
     message: string;
 }
 
 const ErrorMessage: React.FC<ErrorMessageProps> = ({ message }) => {
-    return <div style={{ color: "red", marginBottom: "1rem" }}>{message}</div>;
+    return <Container>{message}</Container>;
 };
 
 export default ErrorMessage;

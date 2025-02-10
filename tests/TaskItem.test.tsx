@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import TaskItem from "../app/components/TaskItem";
+import TaskItem from "../app/components/TaskItem/TaskItem";
 
 describe("TaskItem Component", () => {
     const mockTask = {

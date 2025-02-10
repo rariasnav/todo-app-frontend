@@ -4,7 +4,7 @@ import React, { ReactNode } from 'react';
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor } from './store';
-import Navbar from './components/Navbar';
+import Navbar from './components/Navbar/Navbar';
 
 type RootLayoutProps = {
     children: ReactNode;

@@ -2,11 +2,18 @@
 
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
-import { useSelector } from "react-redux";
+import { useAppSelector } from "./hooks/useAppSelector";
+import { useAppDispatch } from "./hooks/useAuthDispatch";
 import { RootState } from "./store";
-import axiosInstance from "./utils/axiosInstance";
-import TaskForm from "./components/TaskForm";
-import TaskItem from "./components/TaskItem";
+import { 
+    fetchTasks,
+    addTask,
+    editTask,
+    deleteTask,
+    toggleTaskCompleted
+} from "./features/taskActions";
+import TaskForm from "./components/TaskForm/TaskForm";
+import TaskItem from "./components/TaskItem/TaskItem";
 
 
 const Container = styled.div`
@@ -19,98 +26,32 @@ const Container = styled.div`
 `;
 
 export default function HomePage() {
-    const { isAuthenticated, token } = useSelector((state: RootState) => state.auth);
-    const [tasks, setTasks] = useState<any[]>([]);
+    const dispatch = useAppDispatch();
+    const { isAuthenticated, token } = useAppSelector((state: RootState) => state.auth);
+    const tasks = useAppSelector((state: RootState) => state.tasks.tasks);
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
     const [editedTask, setEditedTask] = useState({ title: "", description: "" });
 
     useEffect(() => {
         if (isAuthenticated && token) {
-            fetchTasks();
+            dispatch(fetchTasks());
         }
-    }, [isAuthenticated, token]);
-
-    const fetchTasks = async () => {
-        try {
-            const response = await axiosInstance.get("/api/todos", {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                },
-            });
-            setTasks(response.data);
-        } catch (error) {
-            console.error("Error fetching tasks:", error);
-        }
-    };
+    }, [isAuthenticated, token, dispatch]);
 
     const handleAddTask = async (task: { title: string; description: string }) => {
-        try {
-            const response = await axiosInstance.post("/api/todos", task, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            setTasks((prevTasks) => [...prevTasks, response.data]);
-        } catch (error) {
-            console.error("Error adding task:", error);
-        }
+        await dispatch(addTask(task));
     };
 
-    const handleEditTask = async (
-        id: string,
-        updatedTask: { title: string; description: string }
-    ) => {
-            if (!updatedTask.title.trim()) {
-            alert("Title is required");
-            return;
-            }
-
-        try {
-            const response = await axiosInstance.put(`/api/todos/${id}`, updatedTask, {
-                headers: {
-                Authorization: `Bearer ${token}`,
-                },
-            });
-
-            setTasks((prevTasks) =>
-                prevTasks.map((task) => (task._id === id ? response.data : task))
-            );
-        } catch (error) {
-            console.error("Error updating task:", error);
-            alert("Failed to update the task. Please try again.");
-        }
+    const handleEditTask = async (_id: string, updatedTask: { title: string; description: string }) => {
+        await dispatch(editTask({_id, updatedTask}));
     };
 
-    const handleDeleteTask = async (id: string) => {
-        try {
-            await axiosInstance.delete(`/api/todos/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            setTasks((prevTasks) => prevTasks.filter((task) => task._id !== id));
-        } catch (error) {
-            console.error("Error deleting task:", error);
-        }
+    const handleDeleteTask = async (_id: string) => {
+        await dispatch(deleteTask(_id));
     };
 
-    const toggleTaskCompleted = async (id: string, completed: boolean) => {
-        try {
-            const response = await axiosInstance.put(
-                `/api/todos/${id}`,
-                { completed: !completed },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                },
-            );
-            setTasks((prevTasks) =>
-                prevTasks.map((task) => (task._id === id ? response.data : task))
-            );
-        } catch (error) {
-            console.error("Error toggling task completed status:", error);
-        }
+    const handleToggleTaskCompleted = async (_id: string) => {
+        await dispatch(toggleTaskCompleted({ _id }));
     };
 
     if (!isAuthenticated) {
@@ -134,7 +75,7 @@ export default function HomePage() {
                     }}
                     onSaveEdit={(id, updatedTask) => handleEditTask(id, updatedTask)}
                     onDelete={handleDeleteTask}
-                    onToggle={toggleTaskCompleted}
+                    onToggle={handleToggleTaskCompleted}
                 />
                 ))}
             </ul>
